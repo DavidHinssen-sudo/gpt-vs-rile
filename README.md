@@ -1,35 +1,35 @@
-# GPT vs. RILE: automatisierte Links-Rechts-Verortung von Parteiprogrammen
+# GPT vs. RILE: automated left–right placement of party manifestos
 
-Code-Arbeitsprobe zur Bachelorarbeit *"How well does GPT reconstruct parties' left–right
-positions compared to MARPOR's RILE?"* (Politikwissenschaft B.A., Universität Tübingen,
-Erstprüfer Jakub Sowula, eingereicht 30.09.2025, Note 1,0).
+Code sample from my bachelor's thesis *"How well does GPT reconstruct parties' left–right
+positions compared to MARPOR's RILE?"* (B.A. Political Science, University of Tübingen,
+first examiner Jakub Sowula, submitted 30 Sept 2025, grade 1.0).
 
 ---
 
-## Fragestellung
+## Research question
 
-Die RILE-Skala des Manifesto Project (MARPOR) ist einer der meistgenutzten Indikatoren für
-Parteipositionen, und seit Jahren wegen Kodierfehlern und Inkonsistenzen in der Kritik.
-Die Arbeit prüft, ob ein LLM (GPT) als reproduzierbarer Gegencheck taugt: Ich lasse GPT
-dieselben Quasi-Sätze klassifizieren, die menschliche MARPOR-Coder kodiert haben, aggregiere
-zu einem RILE-analogen Index und vergleiche beide gegen einen externen Expertenbenchmark.
+The RILE scale of the Manifesto Project (MARPOR) is one of the most widely used indicators of
+party positions, and it has been criticised for years for coding errors and inconsistencies.
+The thesis tests whether an LLM (GPT) can serve as a reproducible cross-check: I have GPT
+classify the same quasi-sentences that human MARPOR coders coded, aggregate the labels into a
+RILE-analogous index, and compare both against an external expert benchmark.
 
-**Daten:** 49 Wahlen in sieben Ländern (DE, ES, UK, DK, NO, NL, GR), späte 1990er bis 2020er.
-Texte aus der Manifesto Project Database (Lehmann et al. 2024), Benchmark aus
-Gemenis & Bruinsma (2020) auf Basis von CHES-Expertendaten.
+**Data:** 49 elections in seven countries (DE, ES, UK, DK, NO, NL, GR), late 1990s to 2020s.
+Texts from the Manifesto Project Database (Lehmann et al. 2024), benchmark from
+Gemenis & Bruinsma (2020), based on CHES expert data.
 
-**Ergebnis in einem Satz:** Gleichstand im Durchschnitt, aber bedingt: wo MARPORs
-Humankodierung stark ist, gewinnt RILE; wo sie schwach ist, ist GPT genauer. Über wiederholte
-Läufe erreicht GPT eine höhere Test-Retest-Konsistenz als die publizierte Intercoder-Reliabilität
-menschlicher Coder. LLMs sind damit Ergänzung, nicht Ersatz: brauchbar, um verdächtige
-Zeitpunkte für gezielte Audits zu markieren.
+**Result in one sentence:** A tie on average, but a conditional one: where MARPOR's human
+coding is strong, RILE wins; where it is weak, GPT is more accurate. Across repeated runs, GPT
+reaches higher test–retest consistency than the published intercoder reliability of human
+coders. LLMs are therefore a complement, not a replacement: useful for flagging suspicious
+data points for targeted audits.
 
-## Was hier drin ist
+## What's in here
 
-| Datei | Inhalt |
+| File | Contents |
 | --- | --- |
-| `classify_manifestos.py` | Klassifikations-Pipeline: CSV mit Quasi-Sätzen rein, Labels (left/right/neutral) raus. Batching, JSON-Output, Fehlerbehandlung, Merge über Zeilen-IDs. |
-| `rile_score.py` | Aggregation der Labels zum RILE-analogen Score pro Wahlprogramm. |
+| `classify_manifestos.py` | Classification pipeline: CSV of quasi-sentences in, labels (left/right/neutral) out. Batching, JSON output, error handling, merge via row IDs. |
+| `rile_score.py` | Aggregates the labels into a RILE-analogous score per manifesto. |
 | `requirements.txt` | `pandas`, `openai`. |
 
 ```bash
@@ -38,45 +38,44 @@ python classify_manifestos.py --input data/SPDGER2013.csv --output results/
 python rile_score.py results/*.csv
 ```
 
-Die Kürzel folgen dem Schema `[Parteikürzel][ISO-Ländercode][Wahljahr]`, also
-`SPDGER2013` für das SPD-Programm zur Bundestagswahl 2013.
+File names follow the pattern `[party abbreviation][ISO country code][election year]`, e.g.
+`SPDGER2013` for the SPD manifesto for the 2013 German federal election.
 
-## Designentscheidungen, die im Code sichtbar sind
+## Design decisions visible in the code
 
-**Drei Labels statt 56 Kategorien.** Der erste Versuch, MARPORs 56 Kategorien direkt auf
-Links/Rechts/Neutral zu mappen, produzierte überlange Definitionen, und "Neutral" wurde zur
-Restkategorie, in der alles Uneindeutige landete. Drei Korrekturen: Definitionen auf die
-zentralen Unterscheidungen eingedampft; die Aufgabe von vornherein als Dreierwahl formuliert,
-damit Neutral konzeptionell gleichwertig ist; umstrittene Kategorien wie 305 *Political Authority*
-ausgeschlossen, die MARPOR als "rechts" führt und die in der Literatur als
-Hauptfehlerquelle des RILE gelten (Mikhaylov et al. 2012).
+**Three labels instead of 56 categories.** The first attempt to map MARPOR's 56 categories
+directly onto left/right/neutral produced overly long definitions, and "neutral" became a
+residual category where everything ambiguous ended up. Three fixes: definitions condensed to
+the core distinctions; the task framed as a three-way choice from the start, so that neutral
+is conceptually on equal footing; contested categories such as 305 *Political Authority*
+excluded, which MARPOR counts as "right" and which the literature identifies as a main source
+of error in RILE (Mikhaylov et al. 2012).
 
-**JSON statt Tabelle oder Fließtext.** Getestet wurden alle drei Ausgabeformate. JSON
-parst zuverlässig und geht direkt in ein DataFrame. Jede Eingabezeile trägt ihre ID mit,
-sodass Antworten auch dann korrekt zugeordnet werden, wenn das Modell die Reihenfolge ändert
-oder Zeilen auslässt.
+**JSON instead of a table or free text.** All three output formats were tested. JSON parses
+reliably and goes straight into a DataFrame. Every input row carries its ID, so answers are
+matched correctly even if the model changes the order or skips rows.
 
-**Fehlende Labels bleiben leer.** Ein Batch mit kaputtem JSON kostet höchstens `batch_size`
-Zeilen; die bleiben unklassifiziert und werden am Ende gezählt, statt still verloren zu gehen.
-Bei einem Messinstrument ist ein sichtbares Loch besser als ein unsichtbares.
+**Missing labels stay empty.** A batch with broken JSON costs at most `batch_size` rows; those
+remain unclassified and are counted at the end instead of being silently lost. For a
+measurement instrument, a visible gap is better than an invisible one.
 
-**Parameter:** `temperature=0.2` (Wang et al. 2024), Batchgröße variiert und ohne
-substanziellen Effekt getestet, daher aus Effizienzgründen groß gewählt. Hauptmodell GPT-4o;
-GPT-5 nur explorativ als Sensitivitätscheck.
+**Parameters:** `temperature=0.2` (Wang et al. 2024). Batch size was varied and tested without
+any substantial effect, so a large batch size was chosen for efficiency. Main model GPT-4o;
+GPT-5 only exploratively as a sensitivity check.
 
-## Transparenz zur Fassung
+## Transparency about this version
 
-Der Klassifikations-Code ist der Hauptskript aus dem Anhang der Arbeit (S. 29-32).
-Gegenüber der eingereichten Fassung ist er **strukturell aufgeräumt, nicht inhaltlich geändert**:
-Pfade und Parameter laufen jetzt über die Kommandozeile statt über hartkodierte Variablen,
-der API-Key kommt aus einer Umgebungsvariable statt aus einer Datei, Prompt-Aufbau und
-Batch-Schleife stecken in benannten Funktionen, und Docstrings sind ergänzt. Prompt,
-Label-Definitionen, Aggregationslogik und Ausgabeformat sind unverändert.
+The classification code is the main script from the thesis appendix (pp. 29–32). Compared with
+the submitted version it has been **restructured, not changed in substance**: paths and
+parameters are now passed on the command line instead of hard-coded variables, the API key
+comes from an environment variable instead of a file, prompt construction and the batch loop
+live in named functions, and docstrings have been added. Prompt, label definitions,
+aggregation logic and output format are unchanged.
 
-`rile_score.py` ist neu geschrieben und rekonstruiert die im Methodenteil (Abschnitt 4.7)
-beschriebene Aggregation, die im Anhang nicht abgedruckt war.
+`rile_score.py` is newly written and reconstructs the aggregation described in the methods
+section (section 4.7), which was not printed in the appendix.
 
-## Referenzen
+## References
 
 Gemenis, K. & Bruinsma, B. (2020): *Replication Data for: Challenging the Manifesto Project
 Data Monopoly.* Harvard Dataverse. | Lehmann, P. et al. (2024): *Manifesto Project Dataset.*
